@@ -1,0 +1,49 @@
+name: Sync from temp-mail-bot
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/sync-from-temp-mail.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target repository
+        uses: actions/checkout@v4
+        with:
+          path: target
+          fetch-depth: 0
+
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+        with:
+          repository: md17ll/temp-mail-bot
+          ref: main
+          path: source
+
+      - name: Replace target contents with source contents
+        shell: bash
+        run: |
+          rsync -a --delete --exclude='.git/' source/ target/
+
+      - name: Commit synchronized project
+        shell: bash
+        run: |
+          cd target
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "Sync project from temp-mail-bot [skip ci]"
+          git push origin HEAD:main
+
+# trigger sync
